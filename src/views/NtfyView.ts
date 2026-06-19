@@ -16,6 +16,10 @@ export class NtfyView extends ItemView {
 	private composeInput!: HTMLInputElement;
 	private unsubscribers: Array<() => void> = [];
 	private currentTopic = "";
+	/** Topics for which the full server cache ("all") has already been loaded. */
+	private loadedAllTopics: Set<string> = new Set();
+	// Disable for testing or debugging
+	private allowRenderAllButton = true;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NtfyPlugin) {
 		super(leaf);
@@ -163,6 +167,9 @@ export class NtfyView extends ItemView {
 		// `since` is passed through verbatim, including "all" (full cache) and
 		// "latest" (only the most recent message). Each event is applied during
 		// parsing, wrapped in a batch so only one re-render fires.
+		// If `since` is "all", the switch already loads the full cache — no need
+		// for the "Load all messages" button on this topic.
+		if (this.plugin.settings.since === "all") this.loadedAllTopics.add(topicName);
 		this.plugin.store.beginBatch();
 		setTimeout(() => {
 			this.plugin.client
@@ -195,9 +202,44 @@ export class NtfyView extends ItemView {
 		// Newest first: store is chronological ascending, render from the end.
 		for (let i = msgs.length - 1; i >= 0; i--) this._renderMessage(msgs[i]);
 
+		// "Load all messages" as the last (oldest) list item — only visible when
+		// scrolled to the bottom, and only if the full cache hasn't been loaded
+		// yet (and isn't already loaded by the `since` setting).
+		if (this._canLoadAll(topicName) && this.allowRenderAllButton) this._renderLoadAll();
+
 		// Keep the user at the top when new messages arrive (unless they
 		// scrolled down into older history).
 		if (atTop) this.messageList.scrollTop = 0;
+	}
+
+	/** Whether the full cache can still be loaded for this topic. */
+	private _canLoadAll(topicName: string): boolean {
+		return this.plugin.settings.since !== "all" && !this.loadedAllTopics.has(topicName);
+	}
+
+	private _renderLoadAll() {
+		const btn = this.messageList.createEl("button", {
+			text: "Load all messages",
+			cls: "ntfy-load-all",
+		});
+		btn.addEventListener("click", () => void this._loadAll(this.currentTopic));
+	}
+
+	/** Fetch the full server cache ("all") for the current topic, regardless of
+	 *  the `since` setting. Deduped into the store; the button hides afterwards. */
+	private async _loadAll(topicName: string) {
+		if (!topicName) return;
+		this.loadedAllTopics.add(topicName);
+		this.plugin.store.beginBatch();
+		try {
+			await this.plugin.client.pollAndApply(topicName, "all", (ev) => this.plugin.store.applyEvent(ev));
+		} catch {
+			/* silent — leave the flag so the button doesn't reappear */
+		} finally {
+			this.plugin.store.endBatch();
+		}
+		// Re-render even if nothing new arrived, so the button is removed.
+		this._renderMessages(topicName);
 	}
 
 	private _renderMessage(msg: NtfyMessage) {
@@ -220,6 +262,12 @@ export class NtfyView extends ItemView {
 		});
 		el.addEventListener("contextmenu", (e) => {
 			const menu = new Menu();
+			menu.addItem((item) =>
+				item
+					.setTitle("Copy content")
+					.setIcon("copy")
+					.onClick(() => void this._copyMessage(msg)),
+			);
 			menu.addItem((item) =>
 				item
 					.setTitle("Clear")
@@ -312,6 +360,21 @@ export class NtfyView extends ItemView {
 	/** Sequence key for clear/delete: sequence_id, falling back to the message id. */
 	private _seqKey(msg: NtfyMessage): string {
 		return msg.sequence_id ?? msg.id;
+	}
+
+	/** Copy the message content (title + body) to the clipboard. */
+	private async _copyMessage(msg: NtfyMessage) {
+		const text = [msg.title, msg.message].filter((s) => s && s.trim()).join("\n");
+		if (!text) {
+			new Notice("Nothing to copy.");
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(text);
+			new Notice("Copied.");
+		} catch (e) {
+			new Notice(`Copy failed: ${(e as Error).message}`);
+		}
 	}
 
 	/** Clear (mark read) a message's notification. Pessimistic: wait for the
