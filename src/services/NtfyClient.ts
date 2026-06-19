@@ -215,13 +215,13 @@ export class NtfyStreamClient {
 		const headers: Record<string, string> = {
 			"Content-Type": options.mimeType ?? "application/octet-stream",
 			Filename: options.filename,
+			"X-Filename": options.filename,
 			...this.authHeaders(),
 		};
-		if (options.title) headers["Title"] = options.title;
+		if (options.title) headers["X-Title"] = options.title;
 		if (options.priority) headers["X-Priority"] = String(options.priority);
 		if (options.tags?.length) headers["Tags"] = options.tags.join(",");
-		if (options.markdown) headers["Markdown"] = "yes";
-		if (options.clickUrl) headers["Click"] = options.clickUrl;
+		if (options.clickUrl) headers["X-Click"] = options.clickUrl;
 		if (options.message) headers["Message"] = options.message;
 
 		const res = await fetch(this.apiUrl(encodeURIComponent(options.topic)), {
@@ -316,8 +316,28 @@ export class NtfyStreamClient {
 	// ─── Attachment download ──────────────────────────────────────────────────
 
 	async downloadAttachment(attachmentUrl: string): Promise<ArrayBuffer> {
-		const res = await fetch(attachmentUrl, { headers: this.authHeaders() });
-		if (!res.ok) throw new Error(`Download failed ${res.status}`);
+		let res = await fetch(attachmentUrl, { headers: this.authHeaders() });
+		
+		if (res.status === 429) {
+		// Fallback: Authenticate via ?auth= query param (like the SSE stream) instead of an
+		// Authorization header. A headered GET triggers a CORS preflight (OPTIONS),
+		// which the /file endpoint / self-hosted setup often rejects (→ "fetch
+		// failed" / 429), while a headerless GET is a simple request like the web UI.
+			console.error(`FALLBACK: Using headerless '?auth=' URL with status 429 for ${attachmentUrl} `)
+			const url = this.withAuthQuery(attachmentUrl);
+			res = await fetch(url);
+		}
+		if (!res.ok) throw new Error(`Download failed with ${res.status} for ${attachmentUrl}`);
 		return res.arrayBuffer();
+	}
+
+	/** Append the ?auth= query param if `url` is on our configured ntfy server. */
+	private withAuthQuery(url: string): string {
+		const authParam = buildAuthQueryParam(this.settings.auth);
+		if (!authParam) return url;
+		const base = this.settings.serverUrl.replace(/\/$/, "");
+		if (!url.startsWith(base)) return url; // external attach URL — leave as-is
+		const sep = url.includes("?") ? "&" : "?";
+		return `${url}${sep}auth=${encodeURIComponent(authParam)}`;
 	}
 }

@@ -17,11 +17,11 @@ An [Obsidian](https://obsidian.md) plugin that integrates [ntfy](https://ntfy.sh
 
 ntfy offers three stream formats:
 
-| Format | Endpoint | Auth headers | Auto-reconnect |
-|---|---|---|---|
-| SSE / EventSource | `/sse` | ❌ (no custom headers) | ✅ built-in |
-| **JSON stream** | `/json` | ✅ `Authorization:` | manual (implemented) |
-| WebSocket | `/ws` | ✅ via subprotocol | manual |
+| Format            | Endpoint | Auth headers           | Auto-reconnect       |
+| ----------------- | -------- | ---------------------- | -------------------- |
+| SSE / EventSource | `/sse`   | ❌ (no custom headers) | ✅ built-in          |
+| **JSON stream**   | `/json`  | ✅ `Authorization:`    | manual (implemented) |
+| WebSocket         | `/ws`    | ✅ via subprotocol     | manual               |
 
 `EventSource` (SSE) cannot send custom headers in browsers/Electron, making token/basic auth impossible without the `?auth=<base64>` query-param workaround (exposes credentials in server logs). The **JSON stream via `fetch()`** approach supports full `Authorization:` headers and requires no additional server-side configuration beyond standard ntfy.
 
@@ -29,13 +29,14 @@ ntfy offers three stream formats:
 
 ## Authentication modes
 
-| Mode | What's sent |
-|---|---|
-| **None** | No auth header – works for public ntfy.sh topics |
-| **Basic** | `Authorization: Basic base64(user:pass)` |
+| Mode      | What's sent                                       |
+| --------- | ------------------------------------------------- |
+| **None**  | No auth header – works for public ntfy.sh topics  |
+| **Basic** | `Authorization: Basic base64(user:pass)`          |
 | **Token** | `Authorization: Bearer tk_…` (ntfy access tokens) |
 
 Tokens are generated in the ntfy web UI under **Settings → Access tokens**, or via:
+
 ```
 ntfy token add --label=obsidian
 ```
@@ -92,9 +93,30 @@ Copy `main.js`, `manifest.json`, `styles/styles.css` to your vault's `.obsidian/
 
 ## Roadmap / not yet implemented
 
-- [ ] Message deletion via ntfy `DELETE /<topic>/message/<id>` (removes notification from server, keeps local history)
 - [ ] Multiple server profiles
 - [ ] External file attachments (outside vault)
-- [ ] Priority picker in compose toolbar
 - [ ] Tag input in compose
 - [ ] Message search / filter in sidebar
+
+---
+
+## CORS config for selfhosted ntfy instance
+
+### Nginx Proxy Manager
+
+```nginx
+proxy_buffering off;
+proxy_request_buffering off;
+proxy_redirect off;
+client_max_body_size 0;
+proxy_connect_timeout 3m;
+proxy_send_timeout 3m;
+proxy_read_timeout 3m;
+
+# 1. Für den echten Request (GET, PUT, POST) - Hier tut das "*" nicht weh
+add_header 'Access-Control-Allow-Origin' 'app://obsidian.md' always;
+add_header 'Access-Control-Allow-Credentials' 'true' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS, DELETE' always;
+add_header 'Access-Control-Allow-Headers' '*' always;
+add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, Title, X-Title, Topic, Priority, X-Priority, Prio, P, Tags, X-Tags, Tag, Ta, Click, X-Click, Icon, X-Icon, Delay, X-Delay, X-At, At, X-In, In, Attach, X-Attach, File, X-Filename, Filename, F, Actions, X-Actions, Action, Email, X-Email, Mail, E, Call, X-Call, Cache, X-Cache, Firebase, X-Firebase, UnifiedPush, X-UnifiedPush' always;
+```

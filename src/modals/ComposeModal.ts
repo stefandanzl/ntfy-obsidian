@@ -227,8 +227,8 @@ export class ComposeModal extends Modal {
 					gif: "image/gif",
 					webp: "image/webp",
 					pdf: "application/pdf",
-					md: "text/markdown",
-					txt: "text/plain",
+					// md: "text/markdown",
+					// txt: "text/plain",
 					json: "application/json",
 					zip: "application/zip",
 				} as Record<string, string>
