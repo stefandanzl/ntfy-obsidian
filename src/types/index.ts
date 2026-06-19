@@ -16,6 +16,9 @@ export interface NtfyAttachment {
 	expires?: number;
 }
 
+/** 1=min 2=low 3=default 4=high 5=max/urgent */
+export type Priority = 1 | 2 | 3 | 4 | 5;
+
 export interface NtfyMessage {
 	id: string;
 	time: number;
@@ -26,14 +29,13 @@ export interface NtfyMessage {
 	message?: string;
 	title?: string;
 	tags?: string[];
-	/** 1=min 2=low 3=default 4=high 5=max/urgent */
-	priority?: 1 | 2 | 3 | 4 | 5;
+	priority?: Priority;
 	click?: string;
 	attachment?: NtfyAttachment;
 	/** e.g. "text/markdown" — when set, render the body via MarkdownRenderer. */
 	content_type?: string;
 	/** locally added: which vault file paths were attached when sending */
-	_vaultFiles?: string[];
+	vaultFiles?: string[];
 	/** locally derived: notification dismissed via message_clear — no green dot, message stays visible. */
 	cleared?: boolean;
 }

@@ -176,6 +176,18 @@
   font-size: 0.85em;
 }
 
+/* Click-URL affordance in the meta row (pushed to the right). */
+.ntfy-click-url {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-faint);
+}
+
+.ntfy-click-url:hover {
+  color: var(--text-normal);
+}
+
 /* ── Message content ──────────────────────────────────────────────────────── */
 .ntfy-message-title {
   font-weight: 600;

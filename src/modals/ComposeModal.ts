@@ -1,6 +1,7 @@
 import { App, Modal, Notice, Setting, TFile } from "obsidian";
 import type NtfyPlugin from "../main";
 import { VaultFileSuggestModal } from "./AttachmentPickerModal";
+import { Priority } from "src/types";
 
 const PRIORITY_OPTIONS: Record<string, string> = {
 	"1": "Min",
@@ -116,7 +117,7 @@ export class ComposeModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("Attachment filename")
-			.setDesc("Optional custom filename for the URL attachment.")
+			.setDesc("Optional custom filename for the upload or URL attachment.")
 			.addText((t) =>
 				t
 					.setPlaceholder("file.pdf")
@@ -164,7 +165,7 @@ export class ComposeModal extends Modal {
 	private async send() {
 		const { state, topic } = this;
 
-		if (!state.message.trim() && !state.vaultFile && !state.attachUrl) {
+		if (!state.message.trim() && !state.vaultFile && !state.attachUrl && !state.clickUrl) {
 			new Notice("ntfy: message or attachment required.");
 			return;
 		}
@@ -176,7 +177,7 @@ export class ComposeModal extends Modal {
 						.map((t) => t.trim())
 						.filter(Boolean)
 				: undefined;
-			const priority = parseInt(state.priority) as 1 | 2 | 3 | 4 | 5;
+			const priority = parseInt(state.priority) as Priority;
 
 			if (state.vaultFile) {
 				// Binary file upload via PUT
@@ -192,6 +193,7 @@ export class ComposeModal extends Modal {
 					mimeType: this.guessMime(state.vaultFile.extension),
 					markdown: state.markdown,
 					clickUrl: state.clickUrl || undefined,
+					attachFilename: state.attachFilename || undefined,
 				});
 			} else {
 				await this.plugin.client.publish({

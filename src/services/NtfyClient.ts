@@ -1,4 +1,4 @@
-import { NtfyAuth, NtfyMessage, NtfyPluginSettings } from "../types";
+import { NtfyAuth, NtfyMessage, NtfyPluginSettings, Priority } from "../types";
 
 type MessageHandler = (msg: NtfyMessage) => void;
 type DeleteHandler = (sequenceId: string | undefined, topic: string) => void;
@@ -171,7 +171,7 @@ export class NtfyStreamClient {
 		topic: string;
 		message: string;
 		title?: string;
-		priority?: 1 | 2 | 3 | 4 | 5;
+		priority?: Priority;
 		tags?: string[];
 		markdown?: boolean;
 		clickUrl?: string;
@@ -182,13 +182,14 @@ export class NtfyStreamClient {
 			"Content-Type": "text/plain; charset=utf-8",
 			...this.authHeaders(),
 		};
-		if (options.title) headers["Title"] = options.title;
+		if (options.title) headers["X-Title"] = options.title;
 		if (options.priority) headers["X-Priority"] = String(options.priority);
-		if (options.tags?.length) headers["Tags"] = options.tags.join(",");
-		if (options.markdown) headers["Markdown"] = "yes";
-		if (options.clickUrl) headers["Click"] = options.clickUrl;
-		if (options.attachUrl) headers["Attach"] = options.attachUrl;
-		if (options.attachFilename) headers["Filename"] = options.attachFilename;
+		if (options.tags?.length) headers["X-Tags"] = options.tags.join(",");
+		if (options.clickUrl) headers["X-Click"] = options.clickUrl;
+		if (options.attachUrl) {
+			headers["X-Attach"] = options.attachUrl;
+			if (options.attachFilename) headers["X-Filename"] = options.attachFilename;
+		}
 
 		const res = await fetch(this.apiUrl(encodeURIComponent(options.topic)), {
 			method: "POST",
@@ -204,18 +205,18 @@ export class NtfyStreamClient {
 		topic: string;
 		message: string;
 		title?: string;
-		priority?: 1 | 2 | 3 | 4 | 5;
+		priority?: Priority;
 		tags?: string[];
 		markdown?: boolean;
 		clickUrl?: string;
 		fileData: ArrayBuffer;
 		filename: string;
 		mimeType?: string;
+		attachFilename?: string;
 	}): Promise<void> {
 		const headers: Record<string, string> = {
 			"Content-Type": options.mimeType ?? "application/octet-stream",
-			Filename: options.filename,
-			"X-Filename": options.filename,
+			"X-Filename": options.attachFilename ?? options.filename,
 			...this.authHeaders(),
 		};
 		if (options.title) headers["X-Title"] = options.title;
@@ -244,11 +245,7 @@ export class NtfyStreamClient {
 	 * revive ordering correct against the still-growing message list. The
 	 * caller wraps the call in a store batch so only one re-render fires.
 	 */
-	async pollAndApply(
-		topicName: string,
-		since: string,
-		apply: (ev: NtfyMessage) => void,
-	): Promise<void> {
+	async pollAndApply(topicName: string, since: string, apply: (ev: NtfyMessage) => void): Promise<void> {
 		const params = new URLSearchParams({ poll: "1", since });
 		const authParam = buildAuthQueryParam(this.settings.auth);
 		if (authParam) params.set("auth", authParam);
@@ -263,11 +260,7 @@ export class NtfyStreamClient {
 			if (!trimmed) continue;
 			try {
 				const ev: NtfyMessage = JSON.parse(trimmed);
-				if (
-					ev.event === "message" ||
-					ev.event === "message_clear" ||
-					ev.event === "message_delete"
-				) {
+				if (ev.event === "message" || ev.event === "message_clear" || ev.event === "message_delete") {
 					apply(ev);
 				}
 			} catch {
@@ -285,9 +278,7 @@ export class NtfyStreamClient {
 	 * the drawer; the message stays in the cache/history.
 	 */
 	async clearNotification(topicName: string, sequenceId: string): Promise<void> {
-		const url = this.apiUrl(
-			`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}/clear`,
-		);
+		const url = this.apiUrl(`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}/clear`);
 		const res = await fetch(url, {
 			method: "PUT",
 			headers: this.authHeaders(),
@@ -317,13 +308,13 @@ export class NtfyStreamClient {
 
 	async downloadAttachment(attachmentUrl: string): Promise<ArrayBuffer> {
 		let res = await fetch(attachmentUrl, { headers: this.authHeaders() });
-		
+
 		if (res.status === 429) {
-		// Fallback: Authenticate via ?auth= query param (like the SSE stream) instead of an
-		// Authorization header. A headered GET triggers a CORS preflight (OPTIONS),
-		// which the /file endpoint / self-hosted setup often rejects (→ "fetch
-		// failed" / 429), while a headerless GET is a simple request like the web UI.
-			console.error(`FALLBACK: Using headerless '?auth=' URL with status 429 for ${attachmentUrl} `)
+			// Fallback: Authenticate via ?auth= query param (like the SSE stream) instead of an
+			// Authorization header. A headered GET triggers a CORS preflight (OPTIONS),
+			// which the /file endpoint / self-hosted setup often rejects (→ "fetch
+			// failed" / 429), while a headerless GET is a simple request like the web UI.
+			console.error(`FALLBACK: Using headerless '?auth=' URL with status 429 for ${attachmentUrl} `);
 			const url = this.withAuthQuery(attachmentUrl);
 			res = await fetch(url);
 		}

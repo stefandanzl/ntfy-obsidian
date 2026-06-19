@@ -321,6 +321,23 @@ export class NtfyView extends ItemView {
 			});
 		}
 
+		// Click URL — open externally. Dedicated icon so it doesn't trigger the
+		// card's click-to-clear (stopPropagation).
+		if (msg.click) {
+			const clickLink = meta.createEl("a", {
+				cls: "ntfy-click-url",
+				attr: {
+					href: msg.click,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					title: msg.click,
+					"aria-label": "Open link",
+				},
+			});
+			setIcon(clickLink, "external-link");
+			clickLink.addEventListener("click", (e) => e.stopPropagation());
+		}
+
 		// ── Title ─────────────────────────────────────────────────────────
 		if (msg.title) el.createEl("div", { text: msg.title, cls: "ntfy-message-title" });
 
