@@ -182,6 +182,10 @@ export class ComposeModal extends Modal {
 			if (state.vaultFile) {
 				// Binary file upload via PUT
 				const data = await this.app.vault.readBinary(state.vaultFile);
+				if (data.byteLength === 0) {
+					throw new Error(`Could not read any bytes from ${state.vaultFile}`);
+				}
+
 				await this.plugin.client.publishWithFileAttachment({
 					topic,
 					message: state.message,
