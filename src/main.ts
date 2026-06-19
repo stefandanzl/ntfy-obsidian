@@ -10,7 +10,7 @@ export default class NtfyPlugin extends Plugin {
 	declare settings: NtfyPluginSettings;
 	client!: NtfyStreamClient;
 	store!: MessageStore;
-	private notifService!: NotificationService;
+	notifService!: NotificationService;
 
 	/** The currently open sidebar view instance (if any). */
 	get view(): NtfyView | null {
@@ -36,10 +36,13 @@ export default class NtfyPlugin extends Plugin {
 			// onDelete — server deleted the notification (sequence_id) → remove from client DB
 			(sequenceId, topic) => {
 				this.store.deleteBySequence(sequenceId, topic);
+				this.notifService.dismissNotice(sequenceId);
 			},
 			// onClear — server dismissed the notification (sequence_id) → dot off, message stays
 			(sequenceId, topic) => {
 				this.store.clearBySequence(sequenceId, topic);
+				if (sequenceId) this.notifService.dismissNotice(sequenceId);
+				else this.notifService.dismissAllForTopic(topic);
 			},
 			// onError
 			(err) => {

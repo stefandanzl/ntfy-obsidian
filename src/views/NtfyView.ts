@@ -270,23 +270,28 @@ export class NtfyView extends ItemView {
 		return msg.sequence_id ?? msg.id;
 	}
 
-	/** Clear (mark read) a message's notification: optimistic local update + server PUT. */
+	/** Clear (mark read) a message's notification. Pessimistic: wait for the
+	 *  server's 2xx, then update locally + dismiss any open pop-up. On failure
+	 *  (e.g. 429 rate limit) leave the state unchanged and notify. */
 	private async _clearMessage(msg: NtfyMessage) {
 		const seq = this._seqKey(msg);
-		this.plugin.store.clearBySequence(seq, msg.topic);
 		try {
 			await this.plugin.client.clearNotification(msg.topic, seq);
+			this.plugin.store.clearBySequence(seq, msg.topic);
+			this.plugin.notifService.dismissNotice(seq);
 		} catch (e) {
 			new Notice(`Clear failed: ${(e as Error).message}`);
 		}
 	}
 
-	/** Delete a message entirely: optimistic local removal + server DELETE. */
+	/** Delete a message entirely. Pessimistic: wait for the server's 2xx, then
+	 *  remove locally + dismiss any open pop-up. */
 	private async _deleteMessage(msg: NtfyMessage) {
 		const seq = this._seqKey(msg);
-		this.plugin.store.deleteBySequence(seq, msg.topic);
 		try {
 			await this.plugin.client.deleteNotification(msg.topic, seq);
+			this.plugin.store.deleteBySequence(seq, msg.topic);
+			this.plugin.notifService.dismissNotice(seq);
 		} catch (e) {
 			new Notice(`Delete failed: ${(e as Error).message}`);
 		}
