@@ -1,4 +1,4 @@
-import { ItemView, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, Menu, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
 import type NtfyPlugin from "../main";
 import { NtfyMessage, TopicSettings } from "../types";
 import { ComposeModal } from "../modals/ComposeModal";
@@ -163,6 +163,34 @@ export class NtfyView extends ItemView {
 		const el = this.messageList.createDiv("ntfy-message");
 		el.style.setProperty("--topic-color", color);
 
+		// Interactions: left-click clears the notification (dot off), right-click
+		// opens a Clear / Delete menu. Both hit the server; the store is updated
+		// optimistically so the UI reacts instantly (idempotent with the SSE event).
+		// The sequence key is sequence_id, falling back to the message id (ntfy lets
+		// you use a message's id as its sequence id — the first-message anchor case).
+		el.style.cursor = "pointer";
+		el.addEventListener("click", (e) => {
+			// Don't clear when the user clicked an interactive child (attachment link).
+			if ((e.target as HTMLElement).closest("a, button")) return;
+			void this._clearMessage(msg);
+		});
+		el.addEventListener("contextmenu", (e) => {
+			const menu = new Menu();
+			menu.addItem((item) =>
+				item
+					.setTitle("Clear")
+					.setIcon("check")
+					.onClick(() => void this._clearMessage(msg)),
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle("Delete")
+					.setIcon("trash")
+					.onClick(() => void this._deleteMessage(msg)),
+			);
+			menu.showAtMouseEvent(e);
+		});
+
 		// ── Meta row: timestamp + notification dot ──────────────────────────
 		const meta = el.createDiv("ntfy-message-meta");
 
@@ -232,6 +260,35 @@ export class NtfyView extends ItemView {
 					cls: "ntfy-attachment-size",
 				});
 			}
+		}
+	}
+
+	// ─── Clear / Delete ────────────────────────────────────────────────────────
+
+	/** Sequence key for clear/delete: sequence_id, falling back to the message id. */
+	private _seqKey(msg: NtfyMessage): string {
+		return msg.sequence_id ?? msg.id;
+	}
+
+	/** Clear (mark read) a message's notification: optimistic local update + server PUT. */
+	private async _clearMessage(msg: NtfyMessage) {
+		const seq = this._seqKey(msg);
+		this.plugin.store.clearBySequence(seq, msg.topic);
+		try {
+			await this.plugin.client.clearNotification(msg.topic, seq);
+		} catch (e) {
+			new Notice(`Clear failed: ${(e as Error).message}`);
+		}
+	}
+
+	/** Delete a message entirely: optimistic local removal + server DELETE. */
+	private async _deleteMessage(msg: NtfyMessage) {
+		const seq = this._seqKey(msg);
+		this.plugin.store.deleteBySequence(seq, msg.topic);
+		try {
+			await this.plugin.client.deleteNotification(msg.topic, seq);
+		} catch (e) {
+			new Notice(`Delete failed: ${(e as Error).message}`);
 		}
 	}
 

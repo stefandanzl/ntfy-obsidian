@@ -279,17 +279,30 @@ export class NtfyStreamClient {
 	// ─── Notification Deletion ────────────────────────────────────────────────
 
 	/**
-	 * Delete the *notification status* of a message on the ntfy server.
-	 * This removes it from connected clients (e.g. Android status bar)
-	 * without deleting the message from the local chat history.
-	 *
-	 * API: DELETE /<topic>/messages/<msgId>
-	 * ntfy docs: "Deleting a notification" — clears notification on all subscribers.
+	 * Clear (mark as read / dismiss) the notification for a sequence_id.
+	 * API: PUT /<topic>/<sequence_id>/clear  (alias: /read)
+	 * ntfy docs: "Clearing notifications" — marks it read and dismisses it from
+	 * the drawer; the message stays in the cache/history.
 	 */
-	async deleteNotification(topicName: string, messageId: string): Promise<void> {
+	async clearNotification(topicName: string, sequenceId: string): Promise<void> {
 		const url = this._apiUrl(
-			`${encodeURIComponent(topicName)}/messages/${encodeURIComponent(messageId)}`,
+			`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}/clear`,
 		);
+		const res = await fetch(url, {
+			method: "PUT",
+			headers: this._authHeaders(),
+		});
+		if (!res.ok) throw new Error(`Clear notification failed ${res.status}`);
+	}
+
+	/**
+	 * Delete the notification for a sequence_id entirely (drawer + client DB).
+	 * API: DELETE /<topic>/<sequence_id>
+	 * ntfy docs: "Deleting notifications". A later message with the same
+	 * sequence_id revives it as a new message.
+	 */
+	async deleteNotification(topicName: string, sequenceId: string): Promise<void> {
+		const url = this._apiUrl(`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}`);
 		const res = await fetch(url, {
 			method: "DELETE",
 			headers: this._authHeaders(),
