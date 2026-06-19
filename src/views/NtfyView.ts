@@ -13,6 +13,7 @@ export class NtfyView extends ItemView {
 
 	private topicSelect!: HTMLSelectElement;
 	private messageList!: HTMLElement;
+	private composeInput!: HTMLInputElement;
 	private unsubscribers: Array<() => void> = [];
 	private currentTopic = "";
 
@@ -48,19 +49,30 @@ export class NtfyView extends ItemView {
 		root.empty();
 		root.addClass("ntfy-view");
 
-		// Header: logo + topic picker + compose button
+		// Header: logo + topic picker
 		const header = root.createDiv("ntfy-header");
 		header.createEl("span", { text: "ntfy", cls: "ntfy-logo" });
 
 		this.topicSelect = header.createEl("select", { cls: "ntfy-topic-select" });
 		this.topicSelect.addEventListener("change", () => this.switchTopic(this.topicSelect.value));
 
-		const composeBtn = header.createEl("button", {
-			cls: "ntfy-btn ntfy-compose-btn",
-			attr: { title: "New message" },
+		// Message list
+		this.messageList = root.createDiv("ntfy-message-list");
+
+		// Compose bar (bottom): [detailed modal] [input] [send]
+		this._buildComposeBar(root);
+	}
+
+	private _buildComposeBar(root: HTMLElement) {
+		const bar = root.createDiv("ntfy-compose-bar");
+
+		// Left: open the detailed compose modal (title, priority, attachments…)
+		const modalBtn = bar.createEl("button", {
+			cls: "ntfy-btn ntfy-compose-modal-btn",
+			attr: { title: "Detailed message (title, priority, attachments…)" },
 		});
-		setIcon(composeBtn, "pencil");
-		composeBtn.addEventListener("click", () => {
+		setIcon(modalBtn, "pencil");
+		modalBtn.addEventListener("click", () => {
 			if (!this.currentTopic) {
 				new Notice("Select a topic first.");
 				return;
@@ -68,8 +80,40 @@ export class NtfyView extends ItemView {
 			new ComposeModal(this.app, this.plugin, this.currentTopic).open();
 		});
 
-		// Message list
-		this.messageList = root.createDiv("ntfy-message-list");
+		// Center: text input (Enter to send)
+		this.composeInput = bar.createEl("input", {
+			cls: "ntfy-compose-input",
+			attr: { type: "text", placeholder: "Message…" },
+		});
+		this.composeInput.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				void this._sendComposed();
+			}
+		});
+
+		// Right: send (empty input → sends "triggered", like the ntfy web UI)
+		const sendBtn = bar.createEl("button", {
+			cls: "ntfy-btn ntfy-compose-send",
+			attr: { title: "Send" },
+		});
+		setIcon(sendBtn, "send");
+		sendBtn.addEventListener("click", () => void this._sendComposed());
+	}
+
+	/** Send the compose input. Empty input sends "triggered" (ntfy web-UI behavior). */
+	private async _sendComposed() {
+		if (!this.currentTopic) {
+			new Notice("Select a topic first.");
+			return;
+		}
+		const message = this.composeInput.value.trim() || "triggered";
+		try {
+			await this.plugin.client.publish({ topic: this.currentTopic, message });
+			this.composeInput.value = "";
+		} catch (e) {
+			new Notice(`Send failed: ${(e as Error).message}`);
+		}
 	}
 
 	// ─── Topics ──────────────────────────────────────────────────────────────

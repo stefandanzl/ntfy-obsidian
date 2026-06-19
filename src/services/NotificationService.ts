@@ -10,6 +10,19 @@ const PRIORITY_ICONS: Record<number, string> = {
 	5: "🚨",
 };
 
+/**
+ * How strongly the topic color tints the Notice background, by priority —
+ * blended OVER the standard Notice background color. Low priority stays close
+ * to the default; high/urgent priority is almost the full topic color.
+ */
+const PRIORITY_COLOR_INTENSITY: Record<number, number> = {
+	1: 0, // min — plain Notice background, no tint
+	2: 18,
+	3: 35, // default
+	4: 60,
+	5: 88, // max/urgent — near-full topic color
+};
+
 export class NotificationService {
 	private settings: NtfyPluginSettings;
 	/**
@@ -55,7 +68,8 @@ export class NotificationService {
 			const notice = new Notice(text, duration);
 
 			if (topicSettings.color) {
-				notice.containerEl.style.backgroundColor = `color-mix(in srgb, ${topicSettings.color} 90%, white)`;
+				const intensity = PRIORITY_COLOR_INTENSITY[msg.priority ?? 3] ?? 35;
+				notice.containerEl.style.backgroundColor = `color-mix(in srgb, ${topicSettings.color} ${intensity}%, var(--background-modifier-message))`;
 			}
 			// Inject topic color into the notice element
 			this._styleNotice(notice, topicSettings.color);
@@ -124,7 +138,7 @@ export class NotificationService {
 				el.style.setProperty("--ntfy-topic-color", color);
 				el.addClass("ntfy-notice");
 				// Left border accent
-				el.style.borderLeft = `4px solid ${color}`;
+				// el.style.borderLeft = `4px solid ${color}`;
 			}
 		} catch {
 			// If internal API changes, silently skip styling

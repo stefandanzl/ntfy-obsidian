@@ -48,18 +48,56 @@
   outline-offset: 1px;
 }
 
-/* Pencil/compose button in header */
-.ntfy-compose-btn {
+/* ── Compose Bar (bottom) ────────────────────────────────────────────────── */
+.ntfy-compose-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Extra bottom padding keeps the bar clear of Obsidian's status bar. */
+  padding: 8px 10px 40px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  flex-shrink: 0;
+}
+
+.ntfy-compose-modal-btn,
+.ntfy-compose-send {
   background: transparent;
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px 7px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   transition: background 0.1s, color 0.1s;
+}
+
+.ntfy-compose-send {
+  color: var(--ntfy-green, var(--color-accent));
+}
+
+.ntfy-compose-modal-btn:hover,
+.ntfy-compose-send:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.ntfy-compose-input {
+  flex: 1;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  padding: 6px 8px;
+  font-size: var(--font-ui-small);
+  min-width: 0;
+}
+
+.ntfy-compose-input:focus {
+  outline: 2px solid var(--ntfy-current-color);
+  outline-offset: 1px;
 }
 
 .ntfy-compose-btn:hover {
@@ -89,8 +127,8 @@
 /* ── Message Card ─────────────────────────────────────────────────────────── */
 .ntfy-message {
   background: var(--background-secondary);
-  border-left: 3px solid var(--topic-color, var(--color-accent));
-  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  /* border-left: 3px solid var(--topic-color, var(--color-accent));
+  border-radius: 0 var(--radius-s) var(--radius-s) 0; */
   padding: 6px 10px;
   word-break: break-word;
 }
