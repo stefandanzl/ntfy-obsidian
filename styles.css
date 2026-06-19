@@ -1,8 +1,198 @@
-/*
+/* ── ntfy Obsidian Plugin Styles ───────────────────────────────────────────
+   Uses Obsidian CSS variables for automatic light/dark theme support.
+   ──────────────────────────────────────────────────────────────────────── */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* ── View Container ──────────────────────────────────────────────────────── */
+.ntfy-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  font-size: var(--font-ui-small);
+  --ntfy-current-color: var(--color-accent);
+  --ntfy-green: #338574;
+}
 
-If your plugin does not need CSS, delete this file.
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.ntfy-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  flex-shrink: 0;
+}
 
-*/
+.ntfy-logo {
+  font-weight: 700;
+  font-size: var(--font-ui-medium);
+  color: var(--ntfy-green);
+  letter-spacing: 0.5px;
+  min-width: 30px;
+}
+
+.ntfy-topic-select {
+  flex: 1;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  padding: 3px 6px;
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+.ntfy-topic-select:focus {
+  outline: 2px solid var(--ntfy-current-color);
+  outline-offset: 1px;
+}
+
+/* Pencil/compose button in header */
+.ntfy-compose-btn {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 7px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ntfy-compose-btn:hover {
+  background: var(--ntfy-green);
+  color: white;
+  border-color: transparent;
+}
+
+/* ── Message List ─────────────────────────────────────────────────────────── */
+.ntfy-message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-behavior: smooth;
+}
+
+.ntfy-empty-state {
+  color: var(--text-faint);
+  text-align: center;
+  margin-top: 32px;
+  font-style: italic;
+}
+
+/* ── Message Card ─────────────────────────────────────────────────────────── */
+.ntfy-message {
+  background: var(--background-secondary);
+  border-left: 3px solid var(--topic-color, var(--color-accent));
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  padding: 6px 10px;
+  word-break: break-word;
+}
+
+.ntfy-message:hover {
+  background: var(--background-secondary-alt);
+}
+
+/* ── Meta row ─────────────────────────────────────────────────────────────── */
+.ntfy-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.ntfy-timestamp {
+  color: var(--text-faint);
+  font-size: 0.75em;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Green dot SVG — inline after timestamp text, exactly like ntfy web-UI */
+.ntfy-notif-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.ntfy-priority-icon {
+  font-size: 0.85em;
+}
+
+/* ── Message content ──────────────────────────────────────────────────────── */
+.ntfy-message-title {
+  font-weight: 600;
+  color: var(--text-normal);
+  margin-bottom: 2px;
+}
+
+.ntfy-message-body {
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.ntfy-message-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.ntfy-tag {
+  background: var(--background-modifier-hover);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.72em;
+  color: var(--text-faint);
+}
+
+/* ── Attachment ──────────────────────────────────────────────────────────── */
+.ntfy-attachment {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ntfy-attachment-link {
+  color: var(--link-color);
+  text-decoration: none;
+  font-size: 0.85em;
+}
+
+.ntfy-attachment-link:hover {
+  text-decoration: underline;
+}
+
+.ntfy-attachment-size {
+  color: var(--text-faint);
+  font-size: 0.78em;
+}
+
+/* ── Compose Modal ───────────────────────────────────────────────────────── */
+.ntfy-compose-modal .modal-content {
+  padding: 16px 20px;
+}
+
+/* Make textarea fill width inside Setting row */
+.ntfy-compose-modal .setting-item-control textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ── Notice styling ──────────────────────────────────────────────────────── */
+.ntfy-notice {
+  border-radius: var(--radius-m) !important;
+}

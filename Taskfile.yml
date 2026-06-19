@@ -13,11 +13,11 @@ vars:
   # It will build, copy to your testing vault and reload Obsidian app
   #
   # PLACEHOLDER VALUES:
-  PLUGIN_ID: plugin-template
-  PLUGIN_NAME: Plugin Template
-  PLUGIN_DESCRIPTION: A template for creating Obsidian plugins
-  AUTHOR_NAME: # Stefan Danzl
-  AUTHOR_URL: # https://github.com/stefandanzl
+  PLUGIN_ID: ntfy-obsidian
+  PLUGIN_NAME: ntfy
+  PLUGIN_DESCRIPTION: Receive and send ntfy push notifications directly in your vault
+  AUTHOR_NAME: Stefan Danzl
+  AUTHOR_URL: https://github.com/stefandanzl
   ##########################################################################################
   #
   DIR_PLUGIN: "{{.VAULTS_DIR}}/{{.VAULT_NAME}}/.obsidian/plugins/{{.PLUGIN_ID}}"
@@ -28,7 +28,7 @@ vars:
   TIME:
     sh: date +%H:%M:%S.%3N
   BUNDLE_SIZE:
-    sh: node -e "console.log(require('./meta.json').outputs['main.js'].bytes)"
+    sh: node -e "try{console.log(require('./meta.json').outputs['main.js'].bytes)}catch{console.log('meta.json not yet created')}"
   FILES:
     - "main.js"
     - "manifest.json"
