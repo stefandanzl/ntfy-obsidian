@@ -57,16 +57,21 @@ export class NtfySettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Fetch history since",
-						desc: 'When opening a topic, backfill this much recent history silently (e.g. "10m", "1h", "24h", or "all" for the full server cache). New live messages always arrive regardless.',
+						desc: 'When opening a topic, backfill this much recent history silently (e.g. "10m", "1h", "24h", "all" for the full server cache, or "latest" for only the most recent message). New live messages always arrive regardless.',
 						control: {
 							type: "text",
 							key: "since",
 							placeholder: "10m",
 							validate: (v: string) => {
 								const val = (v ?? "").trim().toLowerCase();
-								// "all" (full server cache) or <positive int> + unit s/m/h/d.
-								if (val === "all" || /^[1-9]\d*(s|m|h|d)$/.test(val)) return;
-								return 'Enter a duration like "10m", "3h", "45s", "2d", or "all".';
+								// "all" (full cache), "latest" (live-only), or <int> + s/m/h/d.
+								if (
+									val === "all" ||
+									val === "latest" ||
+									/^[1-9]\d*(s|m|h|d)$/.test(val)
+								)
+									return;
+								return 'Enter a duration like "10m", "3h", "45s", "2d", "all", or "latest".';
 							},
 						},
 					},

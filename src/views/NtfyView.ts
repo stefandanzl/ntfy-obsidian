@@ -113,16 +113,20 @@ export class NtfyView extends ItemView {
 
 		this._renderMessages(topicName);
 
-		// Poll cached history — deferred so the UI thread can paint the current
-		// view before we kick off the network request + JSON history parse.
-		// `since` is passed through verbatim, including "all" (full cache).
+		// Backfill cached history — deferred so the UI thread can paint first.
+		// `since` is passed through verbatim, including "all" (full cache) and
+		// "latest" (only the most recent message). Each event is applied during
+		// parsing, wrapped in a batch so only one re-render fires.
+		this.plugin.store.beginBatch();
 		setTimeout(() => {
 			this.plugin.client
-				.pollMessages(topicName, this.plugin.settings.since)
-				.then((msgs) => this.plugin.store.loadHistory(topicName, msgs))
+				.pollAndApply(topicName, this.plugin.settings.since, (ev) =>
+					this.plugin.store.applyEvent(ev),
+				)
 				.catch(() => {
 					/* silent */
-				});
+				})
+				.finally(() => this.plugin.store.endBatch());
 		}, 0);
 
 		// Live updates
@@ -154,7 +158,7 @@ export class NtfyView extends ItemView {
 
 	private _renderMessage(msg: NtfyMessage) {
 		const color = this._topicColor(msg.topic);
-		const isCleared = this.plugin.store.isCleared(msg.id);
+		const isCleared = msg.cleared === true;
 
 		const el = this.messageList.createDiv("ntfy-message");
 		el.style.setProperty("--topic-color", color);

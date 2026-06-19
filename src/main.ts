@@ -33,14 +33,13 @@ export default class NtfyPlugin extends Plugin {
 				this.store.addMessage(msg);
 				this.notifService.show(msg);
 			},
-			// onDelete — server cleared a specific notification, mark it locally
-			(messageId, topic) => {
-				this.store.markNotificationCleared(messageId, topic);
-			},
-			// onClear — server dismissed a notification by sequence_id
-			// (falls back to clearing all when no sequence_id is present)
+			// onDelete — server deleted the notification (sequence_id) → remove from client DB
 			(sequenceId, topic) => {
-				this.store.markNotificationClearedBySequence(sequenceId, topic);
+				this.store.deleteBySequence(sequenceId, topic);
+			},
+			// onClear — server dismissed the notification (sequence_id) → dot off, message stays
+			(sequenceId, topic) => {
+				this.store.clearBySequence(sequenceId, topic);
 			},
 			// onError
 			(err) => {
@@ -53,9 +52,9 @@ export default class NtfyPlugin extends Plugin {
 		// ── Sidebar view ──────────────────────────────────────────────────────
 		this.registerView(NTFY_VIEW_TYPE, (leaf) => new NtfyView(leaf, this));
 
-		this.addRibbonIcon("ntfy", "ntfy", () => {
-			this.activateView();
-		});
+		// this.addRibbonIcon("ntfy", "ntfy", () => {
+		// 	this.activateView();
+		// });
 
 		// ── Commands ──────────────────────────────────────────────────────────
 		this.addCommand({

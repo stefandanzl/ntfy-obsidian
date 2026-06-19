@@ -1,7 +1,7 @@
 import { NtfyAuth, NtfyMessage, NtfyPluginSettings } from "../types";
 
 type MessageHandler = (msg: NtfyMessage) => void;
-type DeleteHandler = (messageId: string, topic: string) => void;
+type DeleteHandler = (sequenceId: string | undefined, topic: string) => void;
 type ClearHandler = (sequenceId: string | undefined, topic: string) => void;
 type ErrorHandler = (err: Error) => void;
 
@@ -93,9 +93,9 @@ export class NtfyStreamClient {
 				if (msg.event === "message") {
 					this.onMessage(msg);
 				} else if (msg.event === "message_delete") {
-					// Server signals that a specific notification was deleted.
-					// Clear it locally — message stays in history.
-					this.onDelete(msg.id, msg.topic);
+					// Server deleted the notification for this sequence_id
+					// (removes it from the client DB).
+					this.onDelete(msg.sequence_id, msg.topic);
 				} else if (msg.event === "message_clear") {
 					// Server dismisses the notification(s) for a sequence_id
 					// (targeted clear). When no sequence_id is present, falls
@@ -238,11 +238,17 @@ export class NtfyStreamClient {
 	// ─── Poll cached messages ─────────────────────────────────────────────────
 
 	/**
-	 * Poll cached events from the server (history backfill). Returns ALL event
-	 * types — `message`, `message_clear`, `message_delete` — so the store can
-	 * restore cleared/notification state, not just the message bodies.
+	 * Poll cached events from the server (history backfill) and apply each
+	 * parsed event immediately via `apply` — right during parsing, not
+	 * collect-then-batch. This keeps `message_delete` / `message_clear` /
+	 * revive ordering correct against the still-growing message list. The
+	 * caller wraps the call in a store batch so only one re-render fires.
 	 */
-	async pollMessages(topicName: string, since = "24h"): Promise<NtfyMessage[]> {
+	async pollAndApply(
+		topicName: string,
+		since: string,
+		apply: (ev: NtfyMessage) => void,
+	): Promise<void> {
 		const params = new URLSearchParams({ poll: "1", since });
 		const authParam = buildAuthQueryParam(this.settings.auth);
 		if (authParam) params.set("auth", authParam);
@@ -252,25 +258,22 @@ export class NtfyStreamClient {
 		if (!res.ok) throw new Error(`Poll failed ${res.status}`);
 
 		const text = await res.text();
-		const events: NtfyMessage[] = [];
 		for (const line of text.split("\n")) {
 			const trimmed = line.trim();
 			if (!trimmed) continue;
 			try {
-				const msg: NtfyMessage = JSON.parse(trimmed);
-				// Keep lifecycle events the store knows how to apply.
+				const ev: NtfyMessage = JSON.parse(trimmed);
 				if (
-					msg.event === "message" ||
-					msg.event === "message_clear" ||
-					msg.event === "message_delete"
+					ev.event === "message" ||
+					ev.event === "message_clear" ||
+					ev.event === "message_delete"
 				) {
-					events.push(msg);
+					apply(ev);
 				}
 			} catch {
-				/* skip */
+				/* skip malformed line */
 			}
 		}
-		return events;
 	}
 
 	// ─── Notification Deletion ────────────────────────────────────────────────

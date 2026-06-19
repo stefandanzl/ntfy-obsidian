@@ -32,6 +32,8 @@ export interface NtfyMessage {
 	attachment?: NtfyAttachment;
 	/** locally added: which vault file paths were attached when sending */
 	_vaultFiles?: string[];
+	/** locally derived: notification dismissed via message_clear — no green dot, message stays visible. */
+	cleared?: boolean;
 }
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
