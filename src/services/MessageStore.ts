@@ -50,7 +50,25 @@ export class MessageStore {
 	}
 
 	loadHistory(topic: string, msgs: NtfyMessage[]) {
-		for (const m of msgs) this.addMessage(m);
+		if (!msgs.length) return;
+		if (!this.messages.has(topic)) this.messages.set(topic, []);
+		const existing = this.messages.get(topic)!;
+
+		// Batch path: dedupe once, append once, sort once, notify ONCE.
+		// (Calling addMessage per msg would re-sort + re-render the whole list
+		// for every message — O(n²) DOM work that freezes Obsidian on startup.)
+		const seen = new Set(existing.map((m) => m.id));
+		let added = false;
+		for (const m of msgs) {
+			if (seen.has(m.id)) continue;
+			seen.add(m.id);
+			existing.push(m);
+			added = true;
+		}
+		if (added) {
+			existing.sort((a, b) => a.time - b.time);
+			this._notify(topic);
+		}
 	}
 
 	getMessages(topic: string): NtfyMessage[] {

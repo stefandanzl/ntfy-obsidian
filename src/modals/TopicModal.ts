@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from "obsidian";
 import { DEFAULT_TOPIC_SETTINGS, NotificationSound, TopicSettings } from "../types";
+import { playNotificationSound } from "../services/sound";
 
 const SOUND_OPTIONS: Record<NotificationSound, string> = {
 	default: "Default (system)",
@@ -72,12 +73,24 @@ export class TopicModal extends Modal {
 			});
 
 		// Sound
-		new Setting(contentEl).setName("Notification sound").addDropdown((dd) => {
-			for (const [val, label] of Object.entries(SOUND_OPTIONS)) {
-				dd.addOption(val, label);
-			}
-			dd.setValue(this.topic.sound).onChange((v) => (this.topic.sound = v as NotificationSound));
-		});
+		new Setting(contentEl)
+			.setName("Notification sound")
+			.setDesc("Pick a sound — it plays immediately so you can hear a preview.")
+			.addDropdown((dd) => {
+				for (const [val, label] of Object.entries(SOUND_OPTIONS)) {
+					dd.addOption(val, label);
+				}
+				dd.setValue(this.topic.sound).onChange((v) => {
+					this.topic.sound = v as NotificationSound;
+					playNotificationSound(this.topic.sound);
+				});
+			})
+			.addButton((b) =>
+				b
+					.setButtonText("Preview")
+					.setTooltip("Play the selected sound")
+					.onClick(() => playNotificationSound(this.topic.sound)),
+			);
 
 		// Enabled toggle
 		new Setting(contentEl)

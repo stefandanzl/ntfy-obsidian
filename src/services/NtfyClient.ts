@@ -54,6 +54,9 @@ function buildAuthQueryParam(auth: NtfyAuth): string | undefined {
 export class NtfyStreamClient {
 	private settings: NtfyPluginSettings;
 	private sources: Map<string, EventSource> = new Map();
+	/** Last time we surfaced an SSE error per topic — debounces rapid-fire onerror. */
+	private lastErrorAt: Map<string, number> = new Map();
+	private readonly ERROR_DEBOUNCE_MS = 5000;
 	private onMessage: MessageHandler;
 	private onDelete: DeleteHandler;
 	private onClear: ClearHandler;
@@ -104,7 +107,14 @@ export class NtfyStreamClient {
 		};
 
 		es.onerror = () => {
-			// EventSource auto-reconnects; we just surface the error once
+			// EventSource auto-reconnects. On self-hosted servers a brief
+			// connection drop can make onerror fire thousands of times per
+			// second, which freezes Obsidian — debounce to one surfacing per
+			// topic every ERROR_DEBOUNCE_MS.
+			const now = Date.now();
+			const last = this.lastErrorAt.get(topicName) ?? 0;
+			if (now - last < this.ERROR_DEBOUNCE_MS) return;
+			this.lastErrorAt.set(topicName, now);
 			this.onError(new Error(`ntfy SSE error on topic "${topicName}" — reconnecting…`));
 		};
 

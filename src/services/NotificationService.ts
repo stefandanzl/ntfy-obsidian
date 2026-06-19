@@ -1,5 +1,6 @@
 import { Notice } from "obsidian";
 import { NtfyMessage, NtfyPluginSettings, TopicSettings } from "../types";
+import { playNotificationSound } from "./sound";
 
 const PRIORITY_ICONS: Record<number, string> = {
 	1: "🔕",
@@ -38,7 +39,7 @@ export class NotificationService {
 		// Inject topic color into the notice element
 		this._styleNotice(notice, topicSettings.color);
 
-		this._playSound(topicSettings.sound);
+		playNotificationSound(topicSettings.sound);
 	}
 
 	private _styleNotice(notice: Notice, color: string) {
@@ -53,43 +54,6 @@ export class NotificationService {
 			}
 		} catch {
 			// If internal API changes, silently skip styling
-		}
-	}
-
-	private _playSound(sound: string) {
-		if (sound === "none" || sound === "default") return;
-
-		// Map sound names to web audio tones
-		const FREQUENCIES: Record<string, number[]> = {
-			chime: [523, 659, 784], // C5, E5, G5
-			ping: [880],
-			pop: [440, 220],
-			beep: [660, 660],
-		};
-
-		const freqs = FREQUENCIES[sound];
-		if (!freqs) return;
-
-		try {
-			const ctx = new AudioContext();
-			let time = ctx.currentTime;
-			for (const freq of freqs) {
-				const osc = ctx.createOscillator();
-				const gain = ctx.createGain();
-				osc.connect(gain);
-				gain.connect(ctx.destination);
-				osc.frequency.value = freq;
-				osc.type = "sine";
-				gain.gain.setValueAtTime(0.3, time);
-				gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
-				osc.start(time);
-				osc.stop(time + 0.2);
-				time += 0.15;
-			}
-			// Close context after sounds finish
-			setTimeout(() => ctx.close(), (time - ctx.currentTime + 0.5) * 1000);
-		} catch {
-			// AudioContext not available – skip
 		}
 	}
 

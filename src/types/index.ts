@@ -90,5 +90,5 @@ export const DEFAULT_SETTINGS: NtfyPluginSettings = {
 	topics: [],
 	downloadFolder: "ntfy-downloads",
 	reconnectDelayMs: 5000,
-	since: "all",
+	since: "10m",
 };

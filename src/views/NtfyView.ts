@@ -113,16 +113,19 @@ export class NtfyView extends ItemView {
 
 		this._renderMessages(topicName);
 
-		// Poll cached history
-		this.plugin.client
-			.pollMessages(
-				topicName,
-				this.plugin.settings.since === "all" ? "24h" : this.plugin.settings.since,
-			)
-			.then((msgs) => this.plugin.store.loadHistory(topicName, msgs))
-			.catch(() => {
-				/* silent */
-			});
+		// Poll cached history — deferred so the UI thread can paint the current
+		// view before we kick off the network request + JSON history parse.
+		setTimeout(() => {
+			this.plugin.client
+				.pollMessages(
+					topicName,
+					this.plugin.settings.since === "all" ? "24h" : this.plugin.settings.since,
+				)
+				.then((msgs) => this.plugin.store.loadHistory(topicName, msgs))
+				.catch(() => {
+					/* silent */
+				});
+		}, 0);
 
 		// Live updates
 		const unsub = this.plugin.store.subscribe(topicName, () => this._renderMessages(topicName));
