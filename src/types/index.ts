@@ -30,6 +30,8 @@ export interface NtfyMessage {
 	priority?: 1 | 2 | 3 | 4 | 5;
 	click?: string;
 	attachment?: NtfyAttachment;
+	/** e.g. "text/markdown" — when set, render the body via MarkdownRenderer. */
+	content_type?: string;
 	/** locally added: which vault file paths were attached when sending */
 	_vaultFiles?: string[];
 	/** locally derived: notification dismissed via message_clear — no green dot, message stays visible. */

@@ -1,4 +1,4 @@
-import { ItemView, Menu, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, MarkdownRenderer, Menu, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
 import type NtfyPlugin from "../main";
 import { NtfyMessage, TopicSettings } from "../types";
 import { ComposeModal } from "../modals/ComposeModal";
@@ -325,7 +325,13 @@ export class NtfyView extends ItemView {
 		if (msg.title) el.createEl("div", { text: msg.title, cls: "ntfy-message-title" });
 
 		// ── Body ──────────────────────────────────────────────────────────
-		el.createDiv("ntfy-message-body").createEl("span", { text: msg.message ?? "" });
+		const bodyEl = el.createDiv("ntfy-message-body");
+		if (msg.content_type === "text/markdown" && msg.message) {
+			// Obsidian's built-in renderer
+			void MarkdownRenderer.render(this.app, msg.message, bodyEl, "", this);
+		} else {
+			this.appendLinkedText(msg.message ?? "", bodyEl);
+		}
 
 		// ── Tags ──────────────────────────────────────────────────────────
 		if (msg.tags?.length) {
@@ -360,6 +366,25 @@ export class NtfyView extends ItemView {
 	/** Sequence key for clear/delete: sequence_id, falling back to the message id. */
 	private seqKey(msg: NtfyMessage): string {
 		return msg.sequence_id ?? msg.id;
+	}
+
+	/** Append `text` to `container`, turning http(s) URLs into clickable links.
+	 *  Trailing punctuation (.,;:!?)] etc.) is kept as text, not part of the URL. */
+	private appendLinkedText(text: string, container: HTMLElement) {
+		const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+		let last = 0;
+		let m: RegExpExecArray | null;
+		while ((m = urlRegex.exec(text)) !== null) {
+			if (m.index > last) container.appendText(text.slice(last, m.index));
+			const raw = m[0];
+			const trailingMatch = raw.match(/[.,;:!?)\]'"]+$/);
+			const url = trailingMatch ? raw.slice(0, -trailingMatch[0].length) : raw;
+			const a = container.createEl("a", { text: url, cls: "external-link" });
+			a.href = url;
+			if (trailingMatch) container.appendText(trailingMatch[0]);
+			last = m.index + raw.length;
+		}
+		if (last < text.length) container.appendText(text.slice(last));
 	}
 
 	/** Copy the message content (title + body) to the clipboard. */
