@@ -98,3 +98,9 @@ export const DEFAULT_SETTINGS: NtfyPluginSettings = {
 	disableNotice: false,
 	disableSound: false,
 };
+
+export const NTFY_ICON: string = `<g fill="none" stroke="currentColor" stroke-width="3.175" stroke-linecap="round" stroke-linejoin="round" transform="scale(1.968504)">
+	<path d="M44.98 39.952V10.848H7.407v27.814l-1.587 4.2 8.393-2.91Z" />
+	<path d="M27.781 31.485h8.202" />
+	<path d="M14.169 19.253L23.680 24.745L14.169 30.236" />
+</g>`;

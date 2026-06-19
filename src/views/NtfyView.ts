@@ -28,7 +28,7 @@ export class NtfyView extends ItemView {
 		return "ntfy";
 	}
 	getIcon() {
-		return "bell";
+		return "ntfy";
 	}
 
 	async onOpen() {
@@ -115,12 +115,10 @@ export class NtfyView extends ItemView {
 
 		// Poll cached history — deferred so the UI thread can paint the current
 		// view before we kick off the network request + JSON history parse.
+		// `since` is passed through verbatim, including "all" (full cache).
 		setTimeout(() => {
 			this.plugin.client
-				.pollMessages(
-					topicName,
-					this.plugin.settings.since === "all" ? "24h" : this.plugin.settings.since,
-				)
+				.pollMessages(topicName, this.plugin.settings.since)
 				.then((msgs) => this.plugin.store.loadHistory(topicName, msgs))
 				.catch(() => {
 					/* silent */
@@ -136,8 +134,8 @@ export class NtfyView extends ItemView {
 
 	private _renderMessages(topicName: string) {
 		const msgs = this.plugin.store.getMessages(topicName);
-		const atBottom =
-			this.messageList.scrollTop + this.messageList.clientHeight >= this.messageList.scrollHeight - 20;
+		// Remember whether the user is pinned to the top (reading newest).
+		const atTop = this.messageList.scrollTop <= 20;
 
 		this.messageList.empty();
 
@@ -146,9 +144,12 @@ export class NtfyView extends ItemView {
 			return;
 		}
 
-		for (const msg of msgs) this._renderMessage(msg);
+		// Newest first: store is chronological ascending, render from the end.
+		for (let i = msgs.length - 1; i >= 0; i--) this._renderMessage(msgs[i]);
 
-		if (atBottom) this.messageList.scrollTop = this.messageList.scrollHeight;
+		// Keep the user at the top when new messages arrive (unless they
+		// scrolled down into older history).
+		if (atTop) this.messageList.scrollTop = 0;
 	}
 
 	private _renderMessage(msg: NtfyMessage) {

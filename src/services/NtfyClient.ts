@@ -143,10 +143,9 @@ export class NtfyStreamClient {
 	// ─── URL builder ────────────────────────────────────────────────────────
 
 	private _sseUrl(topicName: string): string {
-		const { serverUrl, auth, since } = this.settings;
+		const { serverUrl, auth } = this.settings;
 		const base = serverUrl.replace(/\/$/, "");
 		const params = new URLSearchParams();
-		params.set("since", since);
 		const authParam = buildAuthQueryParam(auth);
 		if (authParam) params.set("auth", authParam);
 		return `${base}/${encodeURIComponent(topicName)}/sse?${params.toString()}`;

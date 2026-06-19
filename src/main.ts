@@ -1,5 +1,5 @@
-import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
-import { DEFAULT_SETTINGS, NtfyPluginSettings } from "./types";
+import { addIcon, Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { DEFAULT_SETTINGS, NTFY_ICON, NtfyPluginSettings } from "./types";
 import { NtfyStreamClient } from "./services/NtfyClient";
 import { NotificationService } from "./services/NotificationService";
 import { MessageStore } from "./services/MessageStore";
@@ -20,6 +20,8 @@ export default class NtfyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		addIcon("ntfy", NTFY_ICON);
 
 		// ── Services ──────────────────────────────────────────────────────────
 		this.store = new MessageStore();
@@ -50,7 +52,7 @@ export default class NtfyPlugin extends Plugin {
 		// ── Sidebar view ──────────────────────────────────────────────────────
 		this.registerView(NTFY_VIEW_TYPE, (leaf) => new NtfyView(leaf, this));
 
-		this.addRibbonIcon("bell", "ntfy", () => {
+		this.addRibbonIcon("ntfy", "ntfy", () => {
 			this.activateView();
 		});
 
