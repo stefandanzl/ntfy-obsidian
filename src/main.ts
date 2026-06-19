@@ -37,9 +37,10 @@ export default class NtfyPlugin extends Plugin {
 			(messageId, topic) => {
 				this.store.markNotificationCleared(messageId, topic);
 			},
-			// onClear — server cleared all notifications for topic
-			(topic) => {
-				this.store.markAllNotificationsCleared(topic);
+			// onClear — server dismissed a notification by sequence_id
+			// (falls back to clearing all when no sequence_id is present)
+			(sequenceId, topic) => {
+				this.store.markNotificationClearedBySequence(sequenceId, topic);
 			},
 			// onError
 			(err) => {

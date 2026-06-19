@@ -38,11 +38,14 @@ export class NotificationService {
 			const body = msg.message ?? "";
 			const tagsLine = msg.tags?.length ? `\n🏷 ${msg.tags.join(", ")}` : "";
 
-			const text = `${icon} [${msg.topic}]\n${titleLine}${body}${tagsLine}`;
+			const text = `ntfy: ${msg.topic} ${icon}\n${titleLine}${body}${tagsLine}`;
 
 			// duration 0 = stays until clicked (Obsidian Notice uses 0 for that too)
 			const notice = new Notice(text, duration);
 
+			if (topicSettings.color) {
+				notice.containerEl.style.backgroundColor = `color-mix(in srgb, ${topicSettings.color} 90%, white)`;
+			}
 			// Inject topic color into the notice element
 			this._styleNotice(notice, topicSettings.color);
 		}

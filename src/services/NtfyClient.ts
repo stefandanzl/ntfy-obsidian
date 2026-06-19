@@ -2,7 +2,7 @@ import { NtfyAuth, NtfyMessage, NtfyPluginSettings } from "../types";
 
 type MessageHandler = (msg: NtfyMessage) => void;
 type DeleteHandler = (messageId: string, topic: string) => void;
-type ClearHandler = (topic: string) => void;
+type ClearHandler = (sequenceId: string | undefined, topic: string) => void;
 type ErrorHandler = (err: Error) => void;
 
 // ─── Auth helpers ──────────────────────────────────────────────────────────
@@ -97,8 +97,10 @@ export class NtfyStreamClient {
 					// Clear it locally — message stays in history.
 					this.onDelete(msg.id, msg.topic);
 				} else if (msg.event === "message_clear") {
-					// Server signals that ALL notifications in this topic were cleared.
-					this.onClear(msg.topic);
+					// Server dismisses the notification(s) for a sequence_id
+					// (targeted clear). When no sequence_id is present, falls
+					// back to clearing all notifications in the topic.
+					this.onClear(msg.sequence_id, msg.topic);
 				}
 				// open, keepalive, poll_request → silently ignored
 			} catch {
@@ -235,6 +237,11 @@ export class NtfyStreamClient {
 
 	// ─── Poll cached messages ─────────────────────────────────────────────────
 
+	/**
+	 * Poll cached events from the server (history backfill). Returns ALL event
+	 * types — `message`, `message_clear`, `message_delete` — so the store can
+	 * restore cleared/notification state, not just the message bodies.
+	 */
 	async pollMessages(topicName: string, since = "24h"): Promise<NtfyMessage[]> {
 		const params = new URLSearchParams({ poll: "1", since });
 		const authParam = buildAuthQueryParam(this.settings.auth);
@@ -245,18 +252,25 @@ export class NtfyStreamClient {
 		if (!res.ok) throw new Error(`Poll failed ${res.status}`);
 
 		const text = await res.text();
-		const messages: NtfyMessage[] = [];
+		const events: NtfyMessage[] = [];
 		for (const line of text.split("\n")) {
 			const trimmed = line.trim();
 			if (!trimmed) continue;
 			try {
 				const msg: NtfyMessage = JSON.parse(trimmed);
-				if (msg.event === "message") messages.push(msg);
+				// Keep lifecycle events the store knows how to apply.
+				if (
+					msg.event === "message" ||
+					msg.event === "message_clear" ||
+					msg.event === "message_delete"
+				) {
+					events.push(msg);
+				}
 			} catch {
 				/* skip */
 			}
 		}
-		return messages;
+		return events;
 	}
 
 	// ─── Notification Deletion ────────────────────────────────────────────────

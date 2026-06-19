@@ -37,8 +37,27 @@ export class MessageStore {
 
 	/**
 	 * Handle a message_clear event from the server stream.
-	 * Clears notification status for ALL messages in the topic.
+	 *
+	 * ntfy's message_clear carries a `sequence_id` that matches the
+	 * `sequence_id` of the message whose notification should be dismissed.
+	 * We resolve that to the first message with a matching sequence_id and
+	 * clear exactly that one (e.g. a pomodoro "START" clearing the previous
+	 * "PAUSE" notification). If no sequence_id is present, fall back to
+	 * clearing all notifications in the topic.
 	 */
+	markNotificationClearedBySequence(sequenceId: string | undefined, topic: string) {
+		if (!sequenceId) {
+			this.markAllNotificationsCleared(topic);
+			return;
+		}
+		const target = (this.messages.get(topic) ?? []).find((m) => m.sequence_id === sequenceId);
+		if (target) {
+			this.clearedIds.add(target.id);
+			this._notify(topic);
+		}
+	}
+
+	/** Clear-all fallback (legacy message_clear without sequence_id). */
 	markAllNotificationsCleared(topic: string) {
 		const msgs = this.messages.get(topic) ?? [];
 		for (const m of msgs) this.clearedIds.add(m.id);
@@ -49,23 +68,33 @@ export class MessageStore {
 		return this.clearedIds.has(messageId);
 	}
 
-	loadHistory(topic: string, msgs: NtfyMessage[]) {
-		if (!msgs.length) return;
+	/**
+	 * Batch-load a chunk of events (history backfill). Processes `message`,
+	 * `message_clear`, and `message_delete` events in one pass: append new
+	 * messages (deduped), apply clears by sequence_id, apply deletes by id —
+	 * then sort once and notify once. Events arrive chronologically, so a
+	 * message always precedes the clear/delete that targets it.
+	 */
+	loadHistory(topic: string, events: NtfyMessage[]) {
+		if (!events.length) return;
 		if (!this.messages.has(topic)) this.messages.set(topic, []);
 		const existing = this.messages.get(topic)!;
+		let changed = false;
 
-		// Batch path: dedupe once, append once, sort once, notify ONCE.
-		// (Calling addMessage per msg would re-sort + re-render the whole list
-		// for every message — O(n²) DOM work that freezes Obsidian on startup.)
-		const seen = new Set(existing.map((m) => m.id));
-		let added = false;
-		for (const m of msgs) {
-			if (seen.has(m.id)) continue;
-			seen.add(m.id);
-			existing.push(m);
-			added = true;
+		for (const ev of events) {
+			if (ev.event === "message") {
+				if (existing.some((m) => m.id === ev.id)) continue;
+				existing.push(ev);
+				changed = true;
+			} else if (ev.event === "message_clear" && ev.sequence_id) {
+				const target = existing.find((m) => m.sequence_id === ev.sequence_id);
+				if (target && this.clearedIds.add(target.id)) changed = true;
+			} else if (ev.event === "message_delete") {
+				if (this.clearedIds.add(ev.id)) changed = true;
+			}
 		}
-		if (added) {
+
+		if (changed) {
 			existing.sort((a, b) => a.time - b.time);
 			this._notify(topic);
 		}
