@@ -74,6 +74,10 @@ export interface NtfyPluginSettings {
 	reconnectDelayMs: number;
 	/** fetch messages since connection start, or a duration like "10m" */
 	since: string;
+	/** global: disable the Notice pop-up for ALL topics */
+	disableNotice: boolean;
+	/** global: silent mode — disable the notification sound for ALL topics */
+	disableSound: boolean;
 }
 
 export const DEFAULT_TOPIC_SETTINGS: Omit<TopicSettings, "name"> = {
@@ -91,4 +95,6 @@ export const DEFAULT_SETTINGS: NtfyPluginSettings = {
 	downloadFolder: "ntfy-downloads",
 	reconnectDelayMs: 5000,
 	since: "10m",
+	disableNotice: false,
+	disableSound: false,
 };

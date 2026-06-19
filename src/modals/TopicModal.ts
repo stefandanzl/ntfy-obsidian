@@ -49,25 +49,21 @@ export class TopicModal extends Modal {
 				c.setValue(this.topic.color).onChange((v) => (this.topic.color = v));
 			});
 
-		// Notice duration
+		// Notice duration (slider shows seconds; stored as ms for the Notice API)
 		new Setting(contentEl)
-			.setName("Notice duration (ms)")
-			.setDesc("How long the notification stays visible. 0 = until clicked.")
-			.addText((t) => {
-				t.setValue(String(this.topic.noticeDuration))
-					.setPlaceholder("5000")
-					.onChange((v) => {
-						const n = parseInt(v, 10);
-						if (!isNaN(n) && n >= 0) this.topic.noticeDuration = n;
-					});
-				t.inputEl.type = "number";
-				t.inputEl.min = "0";
+			.setName("Notice duration")
+			.setDesc("How long the notification stays visible in seconds. 0 = until clicked.")
+			.addSlider((sl) => {
+				sl.setLimits(0, 30, 1)
+					.setValue(Math.round(this.topic.noticeDuration / 1000))
+					// .setDynamicTooltip()
+					.onChange((v) => (this.topic.noticeDuration = v * 1000));
 			});
 
 		// Mute toggle
 		new Setting(contentEl)
-			.setName("Mute")
-			.setDesc("No Notice() pop-ups for this topic.")
+			.setName("Disable notifications")
+			.setDesc("No Notification pop-up or sound. Messages will still appear in sidebar.")
 			.addToggle((tog) => {
 				tog.setValue(this.topic.mute).onChange((v) => (this.topic.mute = v));
 			});
@@ -85,9 +81,9 @@ export class TopicModal extends Modal {
 					playNotificationSound(this.topic.sound);
 				});
 			})
-			.addButton((b) =>
+			.addExtraButton((b) =>
 				b
-					.setButtonText("Preview")
+					.setIcon("play")
 					.setTooltip("Play the selected sound")
 					.onClick(() => playNotificationSound(this.topic.sound)),
 			);

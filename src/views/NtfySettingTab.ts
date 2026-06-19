@@ -67,6 +67,32 @@ export class NtfySettingTab extends PluginSettingTab {
 				],
 			},
 
+			// ── Notifications (global) ────────────────────────────────────────
+			{
+				type: "group",
+				heading: "Notifications",
+				items: [
+					{
+						name: "Disable notice pop-ups",
+						desc: "Globally suppress the Notice pop-up for all topics. Per-topic mute still wins.",
+						control: {
+							type: "toggle",
+							key: "disableNotice",
+							defaultValue: false,
+						},
+					},
+					{
+						name: "Silent mode (disable sound)",
+						desc: "Globally mute the notification sound for all topics.",
+						control: {
+							type: "toggle",
+							key: "disableSound",
+							defaultValue: false,
+						},
+					},
+				],
+			},
+
 			// ── Authentication ───────────────────────────────────────────────
 			{
 				type: "group",
