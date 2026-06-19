@@ -1,6 +1,6 @@
 {
 	"name": "ntfy-obsidian",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Receive and send ntfy push notifications directly in your vault",
 	"main": "main.js",
 	"scripts": {
