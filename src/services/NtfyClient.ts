@@ -183,7 +183,7 @@ export class NtfyStreamClient {
 			...this._authHeaders(),
 		};
 		if (options.title) headers["Title"] = options.title;
-		if (options.priority) headers["Priority"] = String(options.priority);
+		if (options.priority) headers["X-Priority"] = String(options.priority);
 		if (options.tags?.length) headers["Tags"] = options.tags.join(",");
 		if (options.markdown) headers["Markdown"] = "yes";
 		if (options.clickUrl) headers["Click"] = options.clickUrl;
@@ -218,7 +218,7 @@ export class NtfyStreamClient {
 			...this._authHeaders(),
 		};
 		if (options.title) headers["Title"] = options.title;
-		if (options.priority) headers["Priority"] = String(options.priority);
+		if (options.priority) headers["X-Priority"] = String(options.priority);
 		if (options.tags?.length) headers["Tags"] = options.tags.join(",");
 		if (options.markdown) headers["Markdown"] = "yes";
 		if (options.clickUrl) headers["Click"] = options.clickUrl;

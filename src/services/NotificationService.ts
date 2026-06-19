@@ -17,10 +17,10 @@ const PRIORITY_ICONS: Record<number, string> = {
  */
 const PRIORITY_COLOR_INTENSITY: Record<number, number> = {
 	1: 0, // min — plain Notice background, no tint
-	2: 18,
-	3: 35, // default
-	4: 60,
-	5: 88, // max/urgent — near-full topic color
+	2: 25,
+	3: 50, // default
+	4: 75,
+	5: 100, // max/urgent — near-full topic color
 };
 
 export class NotificationService {
@@ -69,7 +69,8 @@ export class NotificationService {
 
 			if (topicSettings.color) {
 				const intensity = PRIORITY_COLOR_INTENSITY[msg.priority ?? 3] ?? 35;
-				notice.containerEl.style.backgroundColor = `color-mix(in srgb, ${topicSettings.color} ${intensity}%, var(--background-modifier-message))`;
+				const newColor = `color-mix(in srgb, var(--background-modifier-message) 100%, ${topicSettings.color} ${intensity}%)`;
+				notice.containerEl.style.backgroundColor = newColor;
 			}
 			// Inject topic color into the notice element
 			this._styleNotice(notice, topicSettings.color);

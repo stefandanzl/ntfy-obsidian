@@ -32,20 +32,10 @@
   min-width: 30px;
 }
 
-.ntfy-topic-select {
+/* Native Obsidian dropdown, stretched to fill the header width. */
+.ntfy-header .dropdown {
   flex: 1;
-  background: var(--background-primary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  color: var(--text-normal);
-  padding: 3px 6px;
-  font-size: var(--font-ui-small);
-  cursor: pointer;
-}
-
-.ntfy-topic-select:focus {
-  outline: 2px solid var(--ntfy-current-color);
-  outline-offset: 1px;
+  min-width: 0;
 }
 
 /* ── Compose Bar (bottom) ────────────────────────────────────────────────── */

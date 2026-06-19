@@ -53,9 +53,11 @@ export class NtfyView extends ItemView {
 		const header = root.createDiv("ntfy-header");
 		header.createEl("span", { text: "ntfy", cls: "ntfy-logo" });
 
-		this.topicSelect = header.createEl("select", { cls: "ntfy-topic-select" });
+		this.topicSelect = header.createEl("select", {
+			cls: "dropdown",
+			attr: { "aria-label": "Topic" },
+		});
 		this.topicSelect.addEventListener("change", () => this.switchTopic(this.topicSelect.value));
-
 		// Message list
 		this.messageList = root.createDiv("ntfy-message-list");
 
@@ -164,9 +166,7 @@ export class NtfyView extends ItemView {
 		this.plugin.store.beginBatch();
 		setTimeout(() => {
 			this.plugin.client
-				.pollAndApply(topicName, this.plugin.settings.since, (ev) =>
-					this.plugin.store.applyEvent(ev),
-				)
+				.pollAndApply(topicName, this.plugin.settings.since, (ev) => this.plugin.store.applyEvent(ev))
 				.catch(() => {
 					/* silent */
 				})
