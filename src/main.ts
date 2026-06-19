@@ -81,7 +81,7 @@ export default class NtfyPlugin extends Plugin {
 		// ── Connect enabled topics ────────────────────────────────────────────
 		// Wait for workspace to be ready before connecting
 		this.app.workspace.onLayoutReady(() => {
-			this._connectEnabledTopics();
+			this.connectEnabledTopics();
 		});
 	}
 
@@ -114,7 +114,7 @@ export default class NtfyPlugin extends Plugin {
 
 	// ─── Connection Management ────────────────────────────────────────────────
 
-	private _connectEnabledTopics() {
+	private connectEnabledTopics() {
 		for (const topic of this.settings.topics) {
 			if (topic.enabled) {
 				this.client.connect(topic.name);
@@ -125,7 +125,7 @@ export default class NtfyPlugin extends Plugin {
 	/** Disconnect and reconnect all enabled topics (e.g. after server/auth change). */
 	reconnectAll() {
 		this.client.disconnectAll();
-		this._connectEnabledTopics();
+		this.connectEnabledTopics();
 	}
 
 	// ─── Sidebar ─────────────────────────────────────────────────────────────

@@ -46,10 +46,10 @@ export class ComposeModal extends Modal {
 	onOpen() {
 		this.modalEl.addClass("ntfy-compose-modal");
 		this.titleEl.setText(`Send to ${this.topic}`);
-		this._render();
+		this.render();
 	}
 
-	private _render() {
+	private render() {
 		const { contentEl } = this;
 		contentEl.empty();
 
@@ -133,7 +133,7 @@ export class ComposeModal extends Modal {
 			b.setButtonText(this.state.vaultFile ? "Change file" : "Choose file").onClick(() => {
 				new VaultFileSuggestModal(this.app, (file) => {
 					this.state.vaultFile = file;
-					this._render();
+					this.render();
 				}).open();
 			}),
 		);
@@ -145,7 +145,7 @@ export class ComposeModal extends Modal {
 					.setWarning()
 					.onClick(() => {
 						this.state.vaultFile = null;
-						this._render();
+						this.render();
 					}),
 			);
 		}
@@ -156,12 +156,12 @@ export class ComposeModal extends Modal {
 				b
 					.setButtonText("Send")
 					.setCta()
-					.onClick(() => void this._send()),
+					.onClick(() => void this.send()),
 			)
 			.addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
 	}
 
-	private async _send() {
+	private async send() {
 		const { state, topic } = this;
 
 		if (!state.message.trim() && !state.vaultFile && !state.attachUrl) {
@@ -189,7 +189,7 @@ export class ComposeModal extends Modal {
 					tags,
 					fileData: data,
 					filename: state.vaultFile.name,
-					mimeType: this._guessMime(state.vaultFile.extension),
+					mimeType: this.guessMime(state.vaultFile.extension),
 					markdown: state.markdown,
 					clickUrl: state.clickUrl || undefined,
 				});
@@ -217,7 +217,7 @@ export class ComposeModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	private _guessMime(ext: string): string {
+	private guessMime(ext: string): string {
 		return (
 			(
 				{

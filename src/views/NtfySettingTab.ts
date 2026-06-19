@@ -203,18 +203,18 @@ export class NtfySettingTab extends PluginSettingTab {
 
 	// Dot-notation key support for nested settings (auth.mode, auth.username, etc.)
 	override getControlValue(key: string): unknown {
-		return this._getPath(this.plugin.settings, key);
+		return this.getPath(this.plugin.settings, key);
 	}
 
 	override async setControlValue(key: string, value: unknown): Promise<void> {
-		this._setPath(this.plugin.settings, key, value);
+		this.setPath(this.plugin.settings, key, value);
 		await this.plugin.saveSettings();
 		if (key === "serverUrl" || key.startsWith("auth.")) {
 			this.plugin.reconnectAll();
 		}
 	}
 
-	private _getPath(obj: unknown, path: string): unknown {
+	private getPath(obj: unknown, path: string): unknown {
 		let cur: unknown = obj;
 		for (const part of path.split(".")) {
 			if (cur === null || typeof cur !== "object") return undefined;
@@ -223,7 +223,7 @@ export class NtfySettingTab extends PluginSettingTab {
 		return cur;
 	}
 
-	private _setPath(obj: unknown, path: string, value: unknown): void {
+	private setPath(obj: unknown, path: string, value: unknown): void {
 		const parts = path.split(".");
 		const last = parts.pop()!;
 		let cur = obj as Record<string, unknown>;

@@ -84,7 +84,7 @@ export class NtfyStreamClient {
 	connect(topicName: string) {
 		this.disconnect(topicName);
 
-		const url = this._sseUrl(topicName);
+		const url = this.sseUrl(topicName);
 		const es = new EventSource(url);
 
 		es.onmessage = (e: MessageEvent) => {
@@ -144,7 +144,7 @@ export class NtfyStreamClient {
 
 	// ─── URL builder ────────────────────────────────────────────────────────
 
-	private _sseUrl(topicName: string): string {
+	private sseUrl(topicName: string): string {
 		const { serverUrl, auth } = this.settings;
 		const base = serverUrl.replace(/\/$/, "");
 		const params = new URLSearchParams();
@@ -153,12 +153,12 @@ export class NtfyStreamClient {
 		return `${base}/${encodeURIComponent(topicName)}/sse?${params.toString()}`;
 	}
 
-	private _apiUrl(path: string): string {
+	private apiUrl(path: string): string {
 		const base = this.settings.serverUrl.replace(/\/$/, "");
 		return `${base}/${path}`;
 	}
 
-	private _authHeaders(): Record<string, string> {
+	private authHeaders(): Record<string, string> {
 		const headers: Record<string, string> = {};
 		const h = buildAuthHeader(this.settings.auth);
 		if (h) headers["Authorization"] = h;
@@ -180,7 +180,7 @@ export class NtfyStreamClient {
 	}): Promise<void> {
 		const headers: Record<string, string> = {
 			"Content-Type": "text/plain; charset=utf-8",
-			...this._authHeaders(),
+			...this.authHeaders(),
 		};
 		if (options.title) headers["Title"] = options.title;
 		if (options.priority) headers["X-Priority"] = String(options.priority);
@@ -190,7 +190,7 @@ export class NtfyStreamClient {
 		if (options.attachUrl) headers["Attach"] = options.attachUrl;
 		if (options.attachFilename) headers["Filename"] = options.attachFilename;
 
-		const res = await fetch(this._apiUrl(encodeURIComponent(options.topic)), {
+		const res = await fetch(this.apiUrl(encodeURIComponent(options.topic)), {
 			method: "POST",
 			headers,
 			body: options.message,
@@ -215,7 +215,7 @@ export class NtfyStreamClient {
 		const headers: Record<string, string> = {
 			"Content-Type": options.mimeType ?? "application/octet-stream",
 			Filename: options.filename,
-			...this._authHeaders(),
+			...this.authHeaders(),
 		};
 		if (options.title) headers["Title"] = options.title;
 		if (options.priority) headers["X-Priority"] = String(options.priority);
@@ -224,7 +224,7 @@ export class NtfyStreamClient {
 		if (options.clickUrl) headers["Click"] = options.clickUrl;
 		if (options.message) headers["Message"] = options.message;
 
-		const res = await fetch(this._apiUrl(encodeURIComponent(options.topic)), {
+		const res = await fetch(this.apiUrl(encodeURIComponent(options.topic)), {
 			method: "PUT",
 			headers,
 			body: options.fileData,
@@ -254,7 +254,7 @@ export class NtfyStreamClient {
 		if (authParam) params.set("auth", authParam);
 
 		const url = `${this.settings.serverUrl.replace(/\/$/, "")}/${encodeURIComponent(topicName)}/json?${params}`;
-		const res = await fetch(url, { headers: this._authHeaders() });
+		const res = await fetch(url, { headers: this.authHeaders() });
 		if (!res.ok) throw new Error(`Poll failed ${res.status}`);
 
 		const text = await res.text();
@@ -285,12 +285,12 @@ export class NtfyStreamClient {
 	 * the drawer; the message stays in the cache/history.
 	 */
 	async clearNotification(topicName: string, sequenceId: string): Promise<void> {
-		const url = this._apiUrl(
+		const url = this.apiUrl(
 			`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}/clear`,
 		);
 		const res = await fetch(url, {
 			method: "PUT",
-			headers: this._authHeaders(),
+			headers: this.authHeaders(),
 		});
 		if (!res.ok) throw new Error(`Clear notification failed ${res.status}`);
 	}
@@ -302,10 +302,10 @@ export class NtfyStreamClient {
 	 * sequence_id revives it as a new message.
 	 */
 	async deleteNotification(topicName: string, sequenceId: string): Promise<void> {
-		const url = this._apiUrl(`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}`);
+		const url = this.apiUrl(`${encodeURIComponent(topicName)}/${encodeURIComponent(sequenceId)}`);
 		const res = await fetch(url, {
 			method: "DELETE",
-			headers: this._authHeaders(),
+			headers: this.authHeaders(),
 		});
 		// 200 or 404 (already deleted) are both fine
 		if (!res.ok && res.status !== 404) {
@@ -316,7 +316,7 @@ export class NtfyStreamClient {
 	// ─── Attachment download ──────────────────────────────────────────────────
 
 	async downloadAttachment(attachmentUrl: string): Promise<ArrayBuffer> {
-		const res = await fetch(attachmentUrl, { headers: this._authHeaders() });
+		const res = await fetch(attachmentUrl, { headers: this.authHeaders() });
 		if (!res.ok) throw new Error(`Download failed ${res.status}`);
 		return res.arrayBuffer();
 	}

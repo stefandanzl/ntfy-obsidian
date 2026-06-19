@@ -36,7 +36,7 @@ export class MessageStore {
 		for (const topic of this.dirtyTopics) {
 			const msgs = this.messages.get(topic);
 			if (msgs) msgs.sort((a, b) => a.time - b.time);
-			this._notify(topic);
+			this.notify(topic);
 		}
 		this.dirtyTopics.clear();
 	}
@@ -68,7 +68,7 @@ export class MessageStore {
 		}
 		if (existing.some((m) => m.id === msg.id)) return;
 		existing.push(msg);
-		this._markChanged(topic);
+		this.markChanged(topic);
 	}
 
 	/** message_clear: dismiss the notification (no dot), message stays. The read
@@ -79,17 +79,17 @@ export class MessageStore {
 		if (!msgs?.length) return;
 		if (!sequenceId) {
 			for (const m of msgs) m.cleared = true;
-			this._markChanged(topic);
+			this.markChanged(topic);
 			return;
 		}
 		let changed = false;
 		for (const m of msgs) {
-			if (this._matchesSeq(m, sequenceId)) {
+			if (this.matchesSeq(m, sequenceId)) {
 				m.cleared = true;
 				changed = true;
 			}
 		}
-		if (changed) this._markChanged(topic);
+		if (changed) this.markChanged(topic);
 	}
 
 	/** message_delete: remove from the client DB entirely. A revive (new message
@@ -100,9 +100,9 @@ export class MessageStore {
 		if (!msgs?.length) return;
 		const before = msgs.length;
 		for (let i = msgs.length - 1; i >= 0; i--) {
-			if (this._matchesSeq(msgs[i], sequenceId)) msgs.splice(i, 1);
+			if (this.matchesSeq(msgs[i], sequenceId)) msgs.splice(i, 1);
 		}
-		if (msgs.length !== before) this._markChanged(topic);
+		if (msgs.length !== before) this.markChanged(topic);
 	}
 
 	getMessages(topic: string): NtfyMessage[] {
@@ -123,21 +123,21 @@ export class MessageStore {
 
 	/** A message belongs to sequence S if its sequence_id or its id equals S
 	 *  (the first message of a sequence has no sequence_id; its id is the anchor). */
-	private _matchesSeq(m: NtfyMessage, sequenceId: string): boolean {
+	private matchesSeq(m: NtfyMessage, sequenceId: string): boolean {
 		return m.sequence_id === sequenceId || m.id === sequenceId;
 	}
 
-	private _markChanged(topic: string) {
+	private markChanged(topic: string) {
 		this.dirtyTopics.add(topic);
 		if (this.batchDepth === 0) {
 			const msgs = this.messages.get(topic);
 			if (msgs) msgs.sort((a, b) => a.time - b.time);
 			this.dirtyTopics.delete(topic);
-			this._notify(topic);
+			this.notify(topic);
 		}
 	}
 
-	private _notify(topic: string) {
+	private notify(topic: string) {
 		this.listeners.get(topic)?.forEach((cb) => cb());
 	}
 }

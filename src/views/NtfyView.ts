@@ -37,8 +37,8 @@ export class NtfyView extends ItemView {
 	}
 
 	async onOpen() {
-		this._buildUI();
-		this._bindTopics();
+		this.buildUI();
+		this.bindTopics();
 	}
 
 	async onClose() {
@@ -48,7 +48,7 @@ export class NtfyView extends ItemView {
 
 	// ─── UI ──────────────────────────────────────────────────────────────────
 
-	private _buildUI() {
+	private buildUI() {
 		const root = this.containerEl;
 		root.empty();
 		root.addClass("ntfy-view");
@@ -66,10 +66,10 @@ export class NtfyView extends ItemView {
 		this.messageList = root.createDiv("ntfy-message-list");
 
 		// Compose bar (bottom): [detailed modal] [input] [send]
-		this._buildComposeBar(root);
+		this.buildComposeBar(root);
 	}
 
-	private _buildComposeBar(root: HTMLElement) {
+	private buildComposeBar(root: HTMLElement) {
 		const bar = root.createDiv("ntfy-compose-bar");
 
 		// Left: open the detailed compose modal (title, priority, attachments…)
@@ -94,7 +94,7 @@ export class NtfyView extends ItemView {
 		this.composeInput.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
 				e.preventDefault();
-				void this._sendComposed();
+				void this.sendComposed();
 			}
 		});
 
@@ -104,11 +104,11 @@ export class NtfyView extends ItemView {
 			attr: { title: "Send" },
 		});
 		setIcon(sendBtn, "send");
-		sendBtn.addEventListener("click", () => void this._sendComposed());
+		sendBtn.addEventListener("click", () => void this.sendComposed());
 	}
 
 	/** Send the compose input. Empty input sends "triggered" (ntfy web-UI behavior). */
-	private async _sendComposed() {
+	private async sendComposed() {
 		if (!this.currentTopic) {
 			new Notice("Select a topic first.");
 			return;
@@ -125,17 +125,17 @@ export class NtfyView extends ItemView {
 	// ─── Topics ──────────────────────────────────────────────────────────────
 
 	refreshTopics() {
-		this._populateTopicSelect();
+		this.populateTopicSelect();
 		if (this.topicSelect.value) this.switchTopic(this.topicSelect.value);
 	}
 
-	private _bindTopics() {
-		this._populateTopicSelect();
+	private bindTopics() {
+		this.populateTopicSelect();
 		const first = this.plugin.settings.topics.find((t) => t.enabled);
 		if (first) this.switchTopic(this.currentTopic || first.name);
 	}
 
-	private _populateTopicSelect() {
+	private populateTopicSelect() {
 		const previous = this.currentTopic;
 		this.topicSelect.empty();
 		const topics = this.plugin.settings.topics.filter((t) => t.enabled);
@@ -158,10 +158,10 @@ export class NtfyView extends ItemView {
 		this.currentTopic = topicName;
 		this.topicSelect.value = topicName;
 
-		const color = this._topicColor(topicName);
+		const color = this.topicColor(topicName);
 		this.containerEl.style.setProperty("--ntfy-current-color", color);
 
-		this._renderMessages(topicName);
+		this.renderMessages(topicName);
 
 		// Backfill cached history — deferred so the UI thread can paint first.
 		// `since` is passed through verbatim, including "all" (full cache) and
@@ -181,13 +181,13 @@ export class NtfyView extends ItemView {
 		}, 0);
 
 		// Live updates
-		const unsub = this.plugin.store.subscribe(topicName, () => this._renderMessages(topicName));
+		const unsub = this.plugin.store.subscribe(topicName, () => this.renderMessages(topicName));
 		this.unsubscribers.push(unsub);
 	}
 
 	// ─── Message rendering ────────────────────────────────────────────────────
 
-	private _renderMessages(topicName: string) {
+	private renderMessages(topicName: string) {
 		const msgs = this.plugin.store.getMessages(topicName);
 		// Remember whether the user is pinned to the top (reading newest).
 		const atTop = this.messageList.scrollTop <= 20;
@@ -200,12 +200,12 @@ export class NtfyView extends ItemView {
 		}
 
 		// Newest first: store is chronological ascending, render from the end.
-		for (let i = msgs.length - 1; i >= 0; i--) this._renderMessage(msgs[i]);
+		for (let i = msgs.length - 1; i >= 0; i--) this.renderMessage(msgs[i]);
 
 		// "Load all messages" as the last (oldest) list item — only visible when
 		// scrolled to the bottom, and only if the full cache hasn't been loaded
 		// yet (and isn't already loaded by the `since` setting).
-		if (this._canLoadAll(topicName) && this.allowRenderAllButton) this._renderLoadAll();
+		if (this.canLoadAll(topicName) && this.allowRenderAllButton) this.renderLoadAll();
 
 		// Keep the user at the top when new messages arrive (unless they
 		// scrolled down into older history).
@@ -213,21 +213,21 @@ export class NtfyView extends ItemView {
 	}
 
 	/** Whether the full cache can still be loaded for this topic. */
-	private _canLoadAll(topicName: string): boolean {
+	private canLoadAll(topicName: string): boolean {
 		return this.plugin.settings.since !== "all" && !this.loadedAllTopics.has(topicName);
 	}
 
-	private _renderLoadAll() {
+	private renderLoadAll() {
 		const btn = this.messageList.createEl("button", {
 			text: "Load all messages",
 			cls: "ntfy-load-all",
 		});
-		btn.addEventListener("click", () => void this._loadAll(this.currentTopic));
+		btn.addEventListener("click", () => void this.loadAll(this.currentTopic));
 	}
 
 	/** Fetch the full server cache ("all") for the current topic, regardless of
 	 *  the `since` setting. Deduped into the store; the button hides afterwards. */
-	private async _loadAll(topicName: string) {
+	private async loadAll(topicName: string) {
 		if (!topicName) return;
 		this.loadedAllTopics.add(topicName);
 		this.plugin.store.beginBatch();
@@ -239,11 +239,11 @@ export class NtfyView extends ItemView {
 			this.plugin.store.endBatch();
 		}
 		// Re-render even if nothing new arrived, so the button is removed.
-		this._renderMessages(topicName);
+		this.renderMessages(topicName);
 	}
 
-	private _renderMessage(msg: NtfyMessage) {
-		const color = this._topicColor(msg.topic);
+	private renderMessage(msg: NtfyMessage) {
+		const color = this.topicColor(msg.topic);
 		const isCleared = msg.cleared === true;
 
 		const el = this.messageList.createDiv("ntfy-message");
@@ -258,7 +258,7 @@ export class NtfyView extends ItemView {
 		el.addEventListener("click", (e) => {
 			// Don't clear when the user clicked an interactive child (attachment link).
 			if ((e.target as HTMLElement).closest("a, button")) return;
-			void this._clearMessage(msg);
+			void this.clearMessage(msg);
 		});
 		el.addEventListener("contextmenu", (e) => {
 			const menu = new Menu();
@@ -266,19 +266,19 @@ export class NtfyView extends ItemView {
 				item
 					.setTitle("Copy content")
 					.setIcon("copy")
-					.onClick(() => void this._copyMessage(msg)),
+					.onClick(() => void this.copyMessage(msg)),
 			);
 			menu.addItem((item) =>
 				item
 					.setTitle("Clear")
 					.setIcon("check")
-					.onClick(() => void this._clearMessage(msg)),
+					.onClick(() => void this.clearMessage(msg)),
 			);
 			menu.addItem((item) =>
 				item
 					.setTitle("Delete")
 					.setIcon("trash")
-					.onClick(() => void this._deleteMessage(msg)),
+					.onClick(() => void this.deleteMessage(msg)),
 			);
 			menu.showAtMouseEvent(e);
 		});
@@ -344,7 +344,7 @@ export class NtfyView extends ItemView {
 			link.href = "#";
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
-				void this._downloadAttachment(att.url, att.name);
+				void this.downloadAttachment(att.url, att.name);
 			});
 			if (att.size) {
 				attEl.createEl("span", {
@@ -358,12 +358,12 @@ export class NtfyView extends ItemView {
 	// ─── Clear / Delete ────────────────────────────────────────────────────────
 
 	/** Sequence key for clear/delete: sequence_id, falling back to the message id. */
-	private _seqKey(msg: NtfyMessage): string {
+	private seqKey(msg: NtfyMessage): string {
 		return msg.sequence_id ?? msg.id;
 	}
 
 	/** Copy the message content (title + body) to the clipboard. */
-	private async _copyMessage(msg: NtfyMessage) {
+	private async copyMessage(msg: NtfyMessage) {
 		const text = [msg.title, msg.message].filter((s) => s && s.trim()).join("\n");
 		if (!text) {
 			new Notice("Nothing to copy.");
@@ -380,8 +380,8 @@ export class NtfyView extends ItemView {
 	/** Clear (mark read) a message's notification. Pessimistic: wait for the
 	 *  server's 2xx, then update locally + dismiss any open pop-up. On failure
 	 *  (e.g. 429 rate limit) leave the state unchanged and notify. */
-	private async _clearMessage(msg: NtfyMessage) {
-		const seq = this._seqKey(msg);
+	private async clearMessage(msg: NtfyMessage) {
+		const seq = this.seqKey(msg);
 		try {
 			await this.plugin.client.clearNotification(msg.topic, seq);
 			this.plugin.store.clearBySequence(seq, msg.topic);
@@ -393,8 +393,8 @@ export class NtfyView extends ItemView {
 
 	/** Delete a message entirely. Pessimistic: wait for the server's 2xx, then
 	 *  remove locally + dismiss any open pop-up. */
-	private async _deleteMessage(msg: NtfyMessage) {
-		const seq = this._seqKey(msg);
+	private async deleteMessage(msg: NtfyMessage) {
+		const seq = this.seqKey(msg);
 		try {
 			await this.plugin.client.deleteNotification(msg.topic, seq);
 			this.plugin.store.deleteBySequence(seq, msg.topic);
@@ -406,7 +406,7 @@ export class NtfyView extends ItemView {
 
 	// ─── Download ─────────────────────────────────────────────────────────────
 
-	private async _downloadAttachment(url: string, filename: string) {
+	private async downloadAttachment(url: string, filename: string) {
 		try {
 			const data = await this.plugin.client.downloadAttachment(url);
 			const folder = this.plugin.settings.downloadFolder;
@@ -425,12 +425,12 @@ export class NtfyView extends ItemView {
 
 	// ─── Helpers ──────────────────────────────────────────────────────────────
 
-	private _topicColor(topicName: string): string {
+	private topicColor(topicName: string): string {
 		return this.plugin.settings.topics.find((t) => t.name === topicName)?.color ?? "#7c3aed";
 	}
 
 	// suppress unused warning — kept for future use
-	private _getTopicSettings(topicName: string): TopicSettings | undefined {
+	private getTopicSettings(topicName: string): TopicSettings | undefined {
 		return this.plugin.settings.topics.find((t) => t.name === topicName);
 	}
 }
